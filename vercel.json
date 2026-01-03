@@ -9,6 +9,12 @@
   "routes": [
     { "src": "/", "dest": "/api/index.js" },
     { "src": "/test", "dest": "/api/testsend.js" },
+    { "src": "/fix", "dest": "/api/fix.js" }, // ✅ ENDPOINT FIX BARU
+    { "src": "/banding", "dest": "/api/fix.js" }, // Alias
+    { "src": "/appeal", "dest": "/api/fix.js" }, // Alias
     { "src": "/(.*)", "dest": "/api/index.js" }
-  ]
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
 }
