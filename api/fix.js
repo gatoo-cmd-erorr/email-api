@@ -163,126 +163,39 @@ Date: ${new Date().toISOString()}`,
     return {
       success: false,
       error: error.message,
-      account: account.email
-    };
+// api/fix.js
+import { Resend } from 'resend';
+
+const resend = new Resend(process.env.RESEND_API_KEY); // nanti set di env Vercel
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const { apikey, phone } = req.body;
+
+  // Ganti dengan key rahasia bot kamu
+  if (apikey !== 'gabriel123') {
+    return res.status(401).json({ error: 'Invalid key' });
+  }
+
+  try {
+    await resend.emails.send({
+      from: 'no-reply@yourdomain.com', // atau 'onboarding@resend.dev' (default Resend)
+      to: 'support@whatsapp.com',
+      subject: 'Request Review - Banned WhatsApp Account',
+      text: `Hello WhatsApp Support,\n\nMy phone number: +${phone}\nMy account is banned/restricted.\nPlease review and restore access.\n\nThank you.`,
+    });
+
+    res.status(200).json({ success: true, message: 'Appeal sent!' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 }
 
-// ================= MAIN HANDLER =================
-module.exports = async (req, res) => {
-  // Set CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-API-Key');
-  
-  // Handle OPTIONS request
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-  
-  // Only allow GET requests
-  if (req.method !== 'GET') {
-    return res.status(405).json({
-      success: false,
-      error: 'Method not allowed. Use GET.'
-    });
-  }
-  
-  // Get API key
-  const apiKey = req.query.apikey || req.headers['x-api-key'];
-  
-  // Validate API key
-  if (!apiKey || !VALID_KEYS.includes(apiKey)) {
-    return res.status(403).json({
-      success: false,
-      error: 'Invalid or missing API key',
-      validKeys: VALID_KEYS.slice(0, 3) + '...'
-    });
-  }
-  
-  // Get phone number
-  const phone = req.query.nomor;
-  
-  if (!phone) {
-    return res.status(400).json({
-      success: false,
-      error: 'Phone number required. Use ?nomor=628123456789'
-    });
-  }
-  
-  // Clean phone number
-  const cleanPhone = phone.replace(/\D/g, '');
-  
-  if (cleanPhone.length < 10) {
-    return res.status(400).json({
-      success: false,
-      error: 'Invalid phone number format'
-    });
-  }
-  
-  console.log(`📱 Processing WhatsApp appeal for: ${cleanPhone} (Key: ${apiKey})`);
-  
-  try {
-    // Load email accounts
-    const accounts = loadAccounts();
-    
-    if (accounts.length === 0) {
-      return res.status(500).json({
-        success: false,
-        error: 'No email accounts configured',
-        note: 'Create accounts.txt with email:password format'
-      });
-    }
-    
-    console.log(`📧 Loaded ${accounts.length} email accounts`);
-    
-    // Get random account
-    const account = getRandomAccount(accounts);
-    
-    if (!account) {
-      return res.status(500).json({
-        success: false,
-        error: 'Failed to select email account'
-      });
-    }
-    
-    // Send WhatsApp appeal
-    const result = await sendWhatsAppAppeal(cleanPhone, account);
-    
-    if (result.success) {
-      return res.json({
-        success: true,
-        message: 'WhatsApp appeal email sent successfully',
-        data: {
-          phone: cleanPhone,
-          from: result.from,
-          to: result.to,
-          messageId: result.messageId,
-          timestamp: result.timestamp,
-          note: 'Email sent to WhatsApp support team. Please wait 1-5 minutes.'
-        },
-        apiInfo: {
-          key: apiKey,
-          remaining: 'unlimited',
-          server: 'Vercel'
-        }
-      });
-    } else {
-      return res.status(500).json({
-        success: false,
-        error: result.error,
-        account: result.account,
-        note: 'Failed to send email. Trying fallback...'
-      });
-    }
-    
-  } catch (error) {
-    console.error('❌ Server error:', error.message);
-    
-    return res.status(500).json({
-      success: false,
-      error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
-  }
+export const config = {
+  api: {
+    bodyParser: true,
+  },
 };
